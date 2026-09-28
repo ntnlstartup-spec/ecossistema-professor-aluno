@@ -182,7 +182,7 @@
       <p id="successText">Seu gabarito foi registrado com sucesso.</p>
     </section>
 
-    <div class="footer">Ecossistema Professor • Entrada Digital do Aluno • v1.2</div>
+    <div class="footer">Ecossistema Professor • Entrada Digital do Aluno • v1.3</div>
   </main>
 
   <script>
@@ -412,7 +412,19 @@
       return text.indexOf("PROVA MENSAL") >= 0 && text.indexOf("HISTÓRIA") >= 0 && text.indexOf("SOCIOLOGIA") >= 0;
     }
 
+    function isCombinedProvaPaulista2B(e) {
+      if (!e || e.turma !== "2º B" || Number(e.questoes) !== 10) return false;
+      var text = (((e && e.titulo) || "") + " " + ((e && e.id) || "")).toUpperCase();
+      return text.indexOf("PROVA PAULISTA") >= 0 && Boolean(evaluationColor(e));
+    }
+
     function questionLayout(e, index) {
+      if (isCombinedProvaPaulista2B(e)) {
+        if (index < 5) {
+          return {numero:index + 16,secao:"História",faixa:"Questões 16–20"};
+        }
+        return {numero:index + 21,secao:"Sociologia",faixa:"Questões 26–30"};
+      }
       if (isCombinedMonthly2B(e)) {
         return {
           numero: index + 16,
@@ -500,7 +512,9 @@
         state.evaluation.disciplina,
         state.evaluation.questoes + " questões"
       ];
-      if (isCombinedMonthly2B(state.evaluation)) {
+      if (isCombinedProvaPaulista2B(state.evaluation)) {
+        summaryLabels.push("História Q16–20 • Sociologia Q26–30");
+      } else if (isCombinedMonthly2B(state.evaluation)) {
         summaryLabels.push("História Q16–20 • Sociologia Q21–25");
       }
       var cor = evaluationColor(state.evaluation);
