@@ -56,6 +56,8 @@
     .answer-head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:12px}
     .progress{font-size:13px;color:var(--muted);font-weight:800}
     .questions{display:grid;gap:10px}
+    .question-section{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:8px;padding:10px 12px;border:1px solid #dbe4f0;border-radius:12px;background:#f8fafc;color:#334155}
+    .question-section strong{font-size:14px}.question-section span{font-size:12px;color:var(--muted);font-weight:800}
     .question{display:grid;grid-template-columns:42px 1fr;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid #f0f1f3}
     .question:last-child{border-bottom:0}
     .qnum{width:38px;height:38px;border-radius:12px;background:#f2f4f7;display:grid;place-items:center;font-weight:900}
@@ -180,7 +182,7 @@
       <p id="successText">Seu gabarito foi registrado com sucesso.</p>
     </section>
 
-    <div class="footer">Ecossistema Professor • Entrada Digital do Aluno • v1.1</div>
+    <div class="footer">Ecossistema Professor • Entrada Digital do Aluno • v1.2</div>
   </main>
 
   <script>
@@ -404,6 +406,23 @@
       return null;
     }
 
+    function isCombinedMonthly2B(e) {
+      if (!e || e.turma !== "2º B") return false;
+      var text = (((e && e.titulo) || "") + " " + ((e && e.id) || "")).toUpperCase();
+      return text.indexOf("PROVA MENSAL") >= 0 && text.indexOf("HISTÓRIA") >= 0 && text.indexOf("SOCIOLOGIA") >= 0;
+    }
+
+    function questionLayout(e, index) {
+      if (isCombinedMonthly2B(e)) {
+        return {
+          numero: index + 16,
+          secao: index < 5 ? "História" : "Sociologia",
+          faixa: index < 5 ? "Questões 16–20" : "Questões 21–25"
+        };
+      }
+      return {numero:index + 1,secao:"",faixa:""};
+    }
+
     function refreshEvaluations() {
       var list = filteredEvaluations();
       fillSelect(els.evaluationSelect, list, list.length ? "Selecione a avaliação" : "Nenhuma avaliação disponível", "id", "titulo");
@@ -481,6 +500,9 @@
         state.evaluation.disciplina,
         state.evaluation.questoes + " questões"
       ];
+      if (isCombinedMonthly2B(state.evaluation)) {
+        summaryLabels.push("História Q16–20 • Sociologia Q21–25");
+      }
       var cor = evaluationColor(state.evaluation);
       if (cor) summaryLabels.push("Caderno " + cor.key);
 
@@ -601,12 +623,26 @@
 
       for (var i=0;i<state.evaluation.questoes;i++) {
         (function(index){
+          var info = questionLayout(state.evaluation, index);
+          var previousInfo = index > 0 ? questionLayout(state.evaluation, index - 1) : null;
+          if (info.secao && (!previousInfo || previousInfo.secao !== info.secao)) {
+            var section = document.createElement("div");
+            section.className = "question-section";
+            var sectionTitle = document.createElement("strong");
+            sectionTitle.textContent = info.secao;
+            var sectionRange = document.createElement("span");
+            sectionRange.textContent = info.faixa;
+            section.appendChild(sectionTitle);
+            section.appendChild(sectionRange);
+            els.questions.appendChild(section);
+          }
+
           var row = document.createElement("div");
           row.className = "question";
 
           var num = document.createElement("div");
           num.className = "qnum";
-          num.textContent = index + 1;
+          num.textContent = info.numero;
 
           var choices = document.createElement("div");
           choices.className = "choices";
@@ -616,7 +652,7 @@
             btn.type = "button";
             btn.className = "choice";
             btn.textContent = letter;
-            btn.setAttribute("aria-label","Questão " + (index+1) + ", alternativa " + letter);
+            btn.setAttribute("aria-label","Questão " + info.numero + ", alternativa " + letter);
             btn.addEventListener("click",function(){
               state.answers[index] = letter;
               Array.from(choices.children).forEach(function(b){ b.classList.remove("selected"); });
@@ -631,7 +667,7 @@
           els.questions.appendChild(row);
 
           var dot = document.createElement("span");
-          dot.textContent = index + 1;
+          dot.textContent = info.numero;
           dot.dataset.index = index;
           els.review.appendChild(dot);
         })(i);
