@@ -1,0 +1,681 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#111827">
+  <title>Ecossistema Professor — Respostas do Aluno</title>
+  <style>
+    :root{
+      --bg:#f4f6f8;--card:#fff;--ink:#111827;--muted:#667085;--line:#e5e7eb;
+      --brand:#111827;--accent:#2563eb;--ok:#15803d;--warn:#b45309;--danger:#b42318;
+      --shadow:0 10px 30px rgba(17,24,39,.08);--radius:20px
+    }
+    *{box-sizing:border-box}
+    html{background:var(--bg)}
+    body{margin:0;font-family:Inter,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;color:var(--ink);background:var(--bg)}
+    button,input,select{font:inherit}
+    button{cursor:pointer}
+    .shell{max-width:780px;margin:0 auto;padding:18px 14px 48px}
+    .topbar{display:flex;align-items:center;gap:12px;margin-bottom:14px}
+    .logo{width:46px;height:46px;border-radius:14px;background:var(--brand);display:grid;place-items:center;color:#fff;font-weight:900;font-size:20px;box-shadow:var(--shadow)}
+    .brand h1{font-size:18px;line-height:1.1;margin:0}
+    .brand p{font-size:13px;color:var(--muted);margin:4px 0 0}
+    .card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:18px;margin:14px 0}
+    .hero{padding:20px}
+    .hero h2{margin:0 0 6px;font-size:24px}
+    .hero p{margin:0;color:var(--muted);line-height:1.45}
+    .steps{display:flex;gap:8px;margin-top:16px}
+    .step{height:7px;flex:1;border-radius:999px;background:#e5e7eb}
+    .step.on{background:var(--accent)}
+    .section-title{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:14px}
+    .section-title h3{margin:0;font-size:17px}
+    .badge{font-size:12px;font-weight:800;padding:6px 9px;border-radius:999px;background:#eef2ff;color:#3730a3}
+    .grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+    .field{display:flex;flex-direction:column;gap:7px}
+    .field.full{grid-column:1/-1}
+    label{font-size:13px;font-weight:800}
+    input,select{width:100%;border:1px solid #d0d5dd;background:#fff;border-radius:13px;padding:13px 14px;min-height:48px;color:var(--ink);outline:none}
+    input:focus,select:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(37,99,235,.12)}
+    input[disabled],select[disabled]{background:#f2f4f7;color:#667085}
+    .hint{font-size:12px;color:var(--muted);line-height:1.4}
+    .actions{display:flex;gap:10px;margin-top:16px}
+    .btn{border:0;border-radius:13px;min-height:48px;padding:12px 16px;font-weight:900}
+    .btn.primary{background:var(--brand);color:#fff;flex:1}
+    .btn.secondary{background:#eef2f6;color:var(--ink)}
+    .btn:disabled{opacity:.5;cursor:not-allowed}
+    .notice{border-radius:14px;padding:12px 14px;font-size:13px;line-height:1.45;margin-top:12px;display:none}
+    .notice.show{display:block}
+    .notice.info{background:#eff6ff;color:#1d4ed8}
+    .notice.ok{background:#ecfdf3;color:#166534}
+    .notice.warn{background:#fff7ed;color:#9a3412}
+    .notice.error{background:#fef2f2;color:#991b1b}
+    .evaluation-summary{display:none;gap:8px;flex-wrap:wrap;margin:10px 0 0}
+    .evaluation-summary.show{display:flex}
+    .chip{background:#f2f4f7;border:1px solid var(--line);border-radius:999px;padding:7px 10px;font-size:12px;font-weight:800}
+    .answer-head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:12px}
+    .progress{font-size:13px;color:var(--muted);font-weight:800}
+    .questions{display:grid;gap:10px}
+    .question{display:grid;grid-template-columns:42px 1fr;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid #f0f1f3}
+    .question:last-child{border-bottom:0}
+    .qnum{width:38px;height:38px;border-radius:12px;background:#f2f4f7;display:grid;place-items:center;font-weight:900}
+    .choices{display:grid;grid-template-columns:repeat(5,1fr);gap:7px}
+    .choice{min-width:0;height:42px;border:1px solid #d0d5dd;background:#fff;border-radius:11px;font-weight:900;color:#344054}
+    .choice.selected{background:var(--brand);border-color:var(--brand);color:#fff;transform:translateY(-1px)}
+    .review{display:grid;grid-template-columns:repeat(10,1fr);gap:6px;margin-top:14px}
+    .review span{height:30px;border-radius:8px;background:#f2f4f7;display:grid;place-items:center;font-size:12px;font-weight:900;color:#667085}
+    .review span.done{background:#dcfce7;color:#166534}
+    .privacy{font-size:12px;color:var(--muted);line-height:1.5;margin-top:14px}
+    .success{display:none;text-align:center;padding:28px 18px}
+    .success.show{display:block}
+    .success-icon{width:66px;height:66px;border-radius:50%;display:grid;place-items:center;margin:0 auto 14px;background:#dcfce7;color:#166534;font-size:30px;font-weight:900}
+    .success h2{margin:0 0 8px}
+    .success p{color:var(--muted);margin:0;line-height:1.5}
+    .footer{text-align:center;color:#98a2b3;font-size:11px;margin-top:16px}
+    .hidden{display:none!important}
+    .spinner{width:18px;height:18px;border:2px solid rgba(255,255,255,.35);border-top-color:#fff;border-radius:50%;display:inline-block;vertical-align:-4px;margin-right:8px;animation:spin .8s linear infinite}
+    @keyframes spin{to{transform:rotate(360deg)}}
+    @media(max-width:620px){
+      .shell{padding:12px 10px 34px}.card{border-radius:17px;padding:15px}.hero h2{font-size:21px}
+      .grid{grid-template-columns:1fr}.field.full{grid-column:auto}.question{grid-template-columns:34px 1fr;gap:8px}
+      .qnum{width:32px;height:32px;border-radius:10px}.choices{gap:5px}.choice{height:41px;border-radius:10px}
+      .review{grid-template-columns:repeat(5,1fr)}
+    }
+  </style>
+</head>
+<body>
+  <main class="shell">
+    <header class="topbar">
+      <div class="logo">EP</div>
+      <div class="brand">
+        <h1>Ecossistema Professor</h1>
+        <p>Entrada Digital do Aluno</p>
+      </div>
+    </header>
+
+    <section class="card hero" id="hero">
+      <h2>Folha de respostas</h2>
+      <p>Identifique-se, confirme sua avaliação e marque as alternativas. Seu RA é usado apenas para validar sua identidade.</p>
+      <div class="steps" aria-label="Etapas">
+        <div class="step on" id="step1"></div>
+        <div class="step" id="step2"></div>
+        <div class="step" id="step3"></div>
+      </div>
+    </section>
+
+    <section class="card" id="identityCard">
+      <div class="section-title">
+        <h3>1. Identificação</h3>
+        <span class="badge">Aluno</span>
+      </div>
+
+      <div class="grid">
+        <div class="field">
+          <label for="classSelect">Turma</label>
+          <select id="classSelect"><option value="">Selecione a turma</option></select>
+        </div>
+
+        <div class="field">
+          <label for="studentSelect">Nome</label>
+          <select id="studentSelect" disabled><option value="">Selecione seu nome</option></select>
+        </div>
+
+        <div class="field">
+          <label for="raInput">RA</label>
+          <input id="raInput" inputmode="numeric" autocomplete="off" placeholder="Digite seu RA" maxlength="20">
+          <div class="hint">O RA não aparece na lista pública de alunos.</div>
+        </div>
+
+        <div class="field">
+          <label for="subjectSelect">Disciplina</label>
+          <select id="subjectSelect"><option value="">Selecione a disciplina</option></select>
+        </div>
+
+        <div class="field full">
+          <label for="evaluationSelect">Avaliação</label>
+          <select id="evaluationSelect"><option value="">Selecione a avaliação</option></select>
+        </div>
+      </div>
+
+      <div class="evaluation-summary" id="evaluationSummary"></div>
+
+      <div class="actions">
+        <button class="btn primary" id="validateBtn" type="button">Validar e abrir gabarito</button>
+      </div>
+
+      <div class="notice info" id="setupNotice"></div>
+      <div class="notice error" id="identityError"></div>
+    </section>
+
+    <section class="card hidden" id="answersCard">
+      <div class="answer-head">
+        <div>
+          <h3 style="margin:0;font-size:17px">2. Marque suas respostas</h3>
+          <div class="progress" id="answerProgress">0 de 0 respondidas</div>
+        </div>
+        <button class="btn secondary" id="changeStudentBtn" type="button">Voltar</button>
+      </div>
+
+      <div class="questions" id="questions"></div>
+      <div class="review" id="review"></div>
+
+      <div class="actions">
+        <button class="btn primary" id="submitBtn" type="button" disabled>Enviar respostas</button>
+      </div>
+
+      <div class="notice warn" id="answerWarning"></div>
+      <div class="notice error" id="submitError"></div>
+      <div class="privacy">Depois do envio, as respostas ficam vinculadas à avaliação e ao aluno validado. O sistema não mostra o gabarito correto nesta página.</div>
+    </section>
+
+    <section class="card success" id="successCard">
+      <div class="success-icon">✓</div>
+      <h2>Respostas enviadas</h2>
+      <p id="successText">Seu gabarito foi registrado com sucesso.</p>
+    </section>
+
+    <div class="footer">Ecossistema Professor • Entrada Digital do Aluno • v1.0</div>
+  </main>
+
+  <script>
+    "use strict";
+
+    /*
+      CONFIGURAÇÃO DA PONTE
+      --------------------
+      Cole em API_URL a URL publicada do Web App/endpoint do Ecossistema Professor.
+      A página usa POST com Content-Type text/plain para evitar preflight em Apps Script.
+
+      Contrato esperado:
+      1) {action:"bootstrap"} ->
+         {ok:true,turmas:["2A"],disciplinas:["História"],avaliacoes:[
+           {id:"av1",titulo:"Simulado 01",turma:"2A",disciplina:"História",questoes:10,opcoes:["A","B","C","D","E"]}
+         ]}
+
+      2) {action:"studentsForClass",turma:"2A"} ->
+         {ok:true,alunos:[{id:"a1",nome:"Aluno"}]}
+
+      3) {action:"validateStudent",turma:"2A",alunoId:"a1",ra:"123",avaliacaoId:"av1"} ->
+         {ok:true,token:"token-curto",nome:"Aluno"}
+
+      4) {action:"submitAnswers",token:"...",avaliacaoId:"av1",respostas:["A","B",...]} ->
+         {ok:true,submissionId:"...",receivedAt:"..."}
+
+      Para visualizar sem backend: acrescente ?demo=1 ao endereço da página.
+    */
+    var API_URL = "";
+
+    var params = new URLSearchParams(window.location.search);
+    var DEMO_MODE = params.get("demo") === "1";
+    var state = {
+      bootstrap: null,
+      students: [],
+      evaluation: null,
+      student: null,
+      token: "",
+      answers: []
+    };
+
+    var els = {
+      classSelect: document.getElementById("classSelect"),
+      studentSelect: document.getElementById("studentSelect"),
+      raInput: document.getElementById("raInput"),
+      subjectSelect: document.getElementById("subjectSelect"),
+      evaluationSelect: document.getElementById("evaluationSelect"),
+      evaluationSummary: document.getElementById("evaluationSummary"),
+      validateBtn: document.getElementById("validateBtn"),
+      setupNotice: document.getElementById("setupNotice"),
+      identityError: document.getElementById("identityError"),
+      answersCard: document.getElementById("answersCard"),
+      identityCard: document.getElementById("identityCard"),
+      questions: document.getElementById("questions"),
+      review: document.getElementById("review"),
+      answerProgress: document.getElementById("answerProgress"),
+      submitBtn: document.getElementById("submitBtn"),
+      changeStudentBtn: document.getElementById("changeStudentBtn"),
+      answerWarning: document.getElementById("answerWarning"),
+      submitError: document.getElementById("submitError"),
+      successCard: document.getElementById("successCard"),
+      successText: document.getElementById("successText"),
+      step1: document.getElementById("step1"),
+      step2: document.getElementById("step2"),
+      step3: document.getElementById("step3")
+    };
+
+    var demoData = {
+      turmas: ["2ª Série A","2ª Série B","3ª Série B","3ª Série D"],
+      disciplinas: ["História","Sociologia","Geografia"],
+      avaliacoes: [
+        {id:"demo-hist-3",titulo:"Simulado — História — 3ª Série",turma:"3ª Série B",disciplina:"História",questoes:10,opcoes:["A","B","C","D","E"]},
+        {id:"demo-hist-2",titulo:"Simulado — História — 2ª Série",turma:"2ª Série A",disciplina:"História",questoes:5,opcoes:["A","B","C","D","E"]}
+      ],
+      students: {
+        "2ª Série A":[{id:"demo-201",nome:"Aluno Teste 01"},{id:"demo-202",nome:"Aluno Teste 02"}],
+        "2ª Série B":[{id:"demo-211",nome:"Aluno Teste 03"}],
+        "3ª Série B":[{id:"demo-301",nome:"Aluno Teste 04"},{id:"demo-302",nome:"Aluno Teste 05"}],
+        "3ª Série D":[{id:"demo-311",nome:"Aluno Teste 06"}]
+      }
+    };
+
+    function showNotice(el, message, type) {
+      el.textContent = message || "";
+      el.className = "notice " + (type || "info") + (message ? " show" : "");
+    }
+
+    function setButtonLoading(button, loading, label) {
+      if (loading) {
+        button.dataset.label = button.textContent;
+        button.innerHTML = '<span class="spinner"></span>' + (label || "Processando");
+        button.disabled = true;
+      } else {
+        button.textContent = button.dataset.label || label || button.textContent;
+        button.disabled = false;
+      }
+    }
+
+    function escapeHtml(value) {
+      return String(value == null ? "" : value)
+        .replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;")
+        .replace(/"/g,"&quot;").replace(/'/g,"&#039;");
+    }
+
+    function gasCall(fn, arg) {
+      return new Promise(function(resolve, reject) {
+        var runner = google.script.run
+          .withSuccessHandler(function(data) {
+            if (!data || data.ok !== true) {
+              reject(new Error((data && data.error) || "API_ERROR"));
+              return;
+            }
+            resolve(data);
+          })
+          .withFailureHandler(function(err) {
+            reject(new Error((err && err.message) || String(err || "GAS_ERROR")));
+          });
+        if (typeof arg === "undefined") runner[fn]();
+        else runner[fn](arg);
+      });
+    }
+
+    async function api(payload) {
+      if (DEMO_MODE) {
+        var demo = await demoApi(payload);
+        if (!demo || demo.ok !== true) throw new Error((demo && demo.error) || "API_ERROR");
+        return demo;
+      }
+
+      if (window.google && google.script && google.script.run) {
+        if (payload.action === "bootstrap") return gasCall("apiBootstrap");
+        if (payload.action === "studentsForClass") return gasCall("apiStudentsForClass", payload.turma);
+        if (payload.action === "validateStudent") return gasCall("apiValidateStudent", payload);
+        if (payload.action === "submitAnswers") return gasCall("apiSubmitAnswers", payload);
+        throw new Error("Ação desconhecida.");
+      }
+
+      if (!API_URL) throw new Error("API_NOT_CONFIGURED");
+
+      var response = await fetch(API_URL, {
+        method: "POST",
+        headers: {"Content-Type":"text/plain;charset=utf-8"},
+        body: JSON.stringify(payload),
+        redirect: "follow"
+      });
+
+      if (!response.ok) throw new Error("HTTP_" + response.status);
+      var data = await response.json();
+      if (!data || data.ok !== true) throw new Error((data && data.error) || "API_ERROR");
+      return data;
+    }
+
+    async function demoApi(payload) {
+      await new Promise(function(resolve){ setTimeout(resolve, 250); });
+
+      if (payload.action === "bootstrap") {
+        return {ok:true,turmas:demoData.turmas,disciplinas:demoData.disciplinas,avaliacoes:demoData.avaliacoes};
+      }
+      if (payload.action === "studentsForClass") {
+        return {ok:true,alunos:demoData.students[payload.turma] || []};
+      }
+      if (payload.action === "validateStudent") {
+        if (!payload.ra || String(payload.ra).length < 3) return {ok:false,error:"RA inválido no modo demonstração."};
+        var all = demoData.students[payload.turma] || [];
+        var found = all.find(function(s){ return s.id === payload.alunoId; });
+        if (!found) return {ok:false,error:"Aluno não encontrado."};
+        return {ok:true,token:"demo-token",nome:found.nome};
+      }
+      if (payload.action === "submitAnswers") {
+        return {ok:true,submissionId:"DEMO-" + Date.now(),receivedAt:new Date().toISOString()};
+      }
+      return {ok:false,error:"Ação desconhecida."};
+    }
+
+    function fillSelect(select, items, placeholder, valueKey, labelKey) {
+      select.innerHTML = '<option value="">' + escapeHtml(placeholder) + '</option>';
+      items.forEach(function(item){
+        var opt = document.createElement("option");
+        if (typeof item === "string") {
+          opt.value = item;
+          opt.textContent = item;
+        } else {
+          opt.value = item[valueKey];
+          opt.textContent = item[labelKey];
+        }
+        select.appendChild(opt);
+      });
+    }
+
+    function normalizeEvaluation(e) {
+      return {
+        id: String(e.id || ""),
+        titulo: String(e.titulo || e.title || "Avaliação"),
+        turma: String(e.turma || ""),
+        disciplina: String(e.disciplina || ""),
+        questoes: Number(e.questoes || e.questionCount || 0),
+        opcoes: Array.isArray(e.opcoes || e.options) ? (e.opcoes || e.options) : ["A","B","C","D","E"]
+      };
+    }
+
+    function filteredEvaluations() {
+      if (!state.bootstrap) return [];
+      var turma = els.classSelect.value;
+      var disciplina = els.subjectSelect.value;
+      return state.bootstrap.avaliacoes
+        .map(normalizeEvaluation)
+        .filter(function(e){
+          return (!turma || e.turma === turma) && (!disciplina || e.disciplina === disciplina);
+        });
+    }
+
+    function refreshEvaluations() {
+      var list = filteredEvaluations();
+      fillSelect(els.evaluationSelect, list, list.length ? "Selecione a avaliação" : "Nenhuma avaliação disponível", "id", "titulo");
+
+      var fixedEvaluation = params.get("avaliacao");
+      if (fixedEvaluation && list.some(function(e){ return e.id === fixedEvaluation; })) {
+        els.evaluationSelect.value = fixedEvaluation;
+      }
+      onEvaluationChange();
+    }
+
+    async function onClassChange() {
+      state.students = [];
+      state.student = null;
+      els.studentSelect.disabled = true;
+      fillSelect(els.studentSelect, [], "Carregando alunos...", "id", "nome");
+      refreshEvaluations();
+
+      if (!els.classSelect.value) {
+        fillSelect(els.studentSelect, [], "Selecione primeiro a turma", "id", "nome");
+        return;
+      }
+
+      try {
+        var data = await api({action:"studentsForClass",turma:els.classSelect.value});
+        state.students = Array.isArray(data.alunos) ? data.alunos : [];
+        fillSelect(els.studentSelect, state.students, "Selecione seu nome", "id", "nome");
+        els.studentSelect.disabled = false;
+      } catch (err) {
+        fillSelect(els.studentSelect, [], "Não foi possível carregar alunos", "id", "nome");
+        showNotice(els.identityError, readableError(err), "error");
+      }
+    }
+
+    function onSubjectChange() {
+      refreshEvaluations();
+    }
+
+    function onEvaluationChange() {
+      var id = els.evaluationSelect.value;
+      var list = state.bootstrap ? state.bootstrap.avaliacoes.map(normalizeEvaluation) : [];
+      state.evaluation = list.find(function(e){ return e.id === id; }) || null;
+
+      els.evaluationSummary.innerHTML = "";
+      if (!state.evaluation) {
+        els.evaluationSummary.classList.remove("show");
+        return;
+      }
+
+      [
+        state.evaluation.turma,
+        state.evaluation.disciplina,
+        state.evaluation.questoes + " questões"
+      ].forEach(function(label){
+        var chip = document.createElement("span");
+        chip.className = "chip";
+        chip.textContent = label;
+        els.evaluationSummary.appendChild(chip);
+      });
+      els.evaluationSummary.classList.add("show");
+    }
+
+    function applyUrlPreset() {
+      var turma = params.get("turma");
+      var disciplina = params.get("disciplina");
+
+      if (turma && Array.from(els.classSelect.options).some(function(o){ return o.value === turma; })) {
+        els.classSelect.value = turma;
+      }
+      if (disciplina && Array.from(els.subjectSelect.options).some(function(o){ return o.value === disciplina; })) {
+        els.subjectSelect.value = disciplina;
+      }
+    }
+
+    async function bootstrap() {
+      showNotice(els.identityError, "", "error");
+
+      var gasMode = Boolean(window.google && google.script && google.script.run);
+      if (!API_URL && !DEMO_MODE && !gasMode) {
+        showNotice(
+          els.setupNotice,
+          "Página pronta para integração. O professor ainda precisa conectar o endpoint do cadastro central. Para visualizar o fluxo agora, abra esta página com ?demo=1 no final do endereço.",
+          "info"
+        );
+      } else if (DEMO_MODE) {
+        showNotice(els.setupNotice, "Modo demonstração ativo. Os nomes e envios desta tela são fictícios.", "warn");
+      }
+
+      try {
+        var data = await api({action:"bootstrap"});
+        state.bootstrap = {
+          turmas: Array.isArray(data.turmas) ? data.turmas : [],
+          disciplinas: Array.isArray(data.disciplinas) ? data.disciplinas : [],
+          avaliacoes: Array.isArray(data.avaliacoes) ? data.avaliacoes : []
+        };
+
+        fillSelect(els.classSelect, state.bootstrap.turmas, "Selecione a turma");
+        fillSelect(els.subjectSelect, state.bootstrap.disciplinas, "Selecione a disciplina");
+        applyUrlPreset();
+
+        if (els.classSelect.value) await onClassChange();
+        refreshEvaluations();
+      } catch (err) {
+        if (String(err.message) !== "API_NOT_CONFIGURED") {
+          showNotice(els.identityError, readableError(err), "error");
+        }
+      }
+    }
+
+    function readableError(err) {
+      var msg = String(err && err.message ? err.message : err || "");
+      if (msg === "API_NOT_CONFIGURED") return "A conexão com o cadastro central ainda não foi configurada.";
+      if (msg.indexOf("HTTP_") === 0) return "O servidor não respondeu corretamente. Tente novamente.";
+      if (msg === "Failed to fetch") return "Não foi possível conectar ao servidor. Confira a internet e tente novamente.";
+      return msg || "Não foi possível concluir a operação.";
+    }
+
+    async function validateStudent() {
+      showNotice(els.identityError, "", "error");
+
+      var turma = els.classSelect.value;
+      var alunoId = els.studentSelect.value;
+      var ra = els.raInput.value.trim();
+      var disciplina = els.subjectSelect.value;
+      var avaliacaoId = els.evaluationSelect.value;
+
+      if (!turma || !alunoId || !ra || !disciplina || !avaliacaoId || !state.evaluation) {
+        showNotice(els.identityError, "Preencha turma, nome, RA, disciplina e avaliação para continuar.", "error");
+        return;
+      }
+
+      setButtonLoading(els.validateBtn, true, "Validando");
+
+      try {
+        var data = await api({
+          action:"validateStudent",
+          turma:turma,
+          alunoId:alunoId,
+          ra:ra,
+          avaliacaoId:avaliacaoId
+        });
+
+        if (!data.ok) throw new Error(data.error || "Não foi possível validar.");
+        state.student = {id:alunoId,nome:data.nome || els.studentSelect.options[els.studentSelect.selectedIndex].text};
+        state.token = String(data.token || "");
+        state.answers = new Array(state.evaluation.questoes).fill("");
+
+        els.raInput.value = "";
+        renderQuestions();
+        els.identityCard.classList.add("hidden");
+        els.answersCard.classList.remove("hidden");
+        els.successCard.classList.remove("show");
+        els.step1.classList.add("on");
+        els.step2.classList.add("on");
+        window.scrollTo({top:0,behavior:"smooth"});
+      } catch (err) {
+        showNotice(els.identityError, readableError(err), "error");
+      } finally {
+        setButtonLoading(els.validateBtn, false, "Validar e abrir gabarito");
+      }
+    }
+
+    function renderQuestions() {
+      els.questions.innerHTML = "";
+      els.review.innerHTML = "";
+
+      var options = state.evaluation.opcoes.length ? state.evaluation.opcoes : ["A","B","C","D","E"];
+
+      for (var i=0;i<state.evaluation.questoes;i++) {
+        (function(index){
+          var row = document.createElement("div");
+          row.className = "question";
+
+          var num = document.createElement("div");
+          num.className = "qnum";
+          num.textContent = index + 1;
+
+          var choices = document.createElement("div");
+          choices.className = "choices";
+
+          options.forEach(function(letter){
+            var btn = document.createElement("button");
+            btn.type = "button";
+            btn.className = "choice";
+            btn.textContent = letter;
+            btn.setAttribute("aria-label","Questão " + (index+1) + ", alternativa " + letter);
+            btn.addEventListener("click",function(){
+              state.answers[index] = letter;
+              Array.from(choices.children).forEach(function(b){ b.classList.remove("selected"); });
+              btn.classList.add("selected");
+              updateProgress();
+            });
+            choices.appendChild(btn);
+          });
+
+          row.appendChild(num);
+          row.appendChild(choices);
+          els.questions.appendChild(row);
+
+          var dot = document.createElement("span");
+          dot.textContent = index + 1;
+          dot.dataset.index = index;
+          els.review.appendChild(dot);
+        })(i);
+      }
+
+      updateProgress();
+    }
+
+    function updateProgress() {
+      var done = state.answers.filter(Boolean).length;
+      var total = state.answers.length;
+      els.answerProgress.textContent = done + " de " + total + " respondidas";
+      els.submitBtn.disabled = done !== total || total === 0;
+
+      Array.from(els.review.children).forEach(function(dot){
+        var idx = Number(dot.dataset.index);
+        dot.classList.toggle("done", Boolean(state.answers[idx]));
+      });
+
+      if (done === total && total > 0) {
+        showNotice(els.answerWarning, "Todas as questões foram respondidas. Revise e envie quando estiver pronto.", "ok");
+      } else {
+        showNotice(els.answerWarning, "", "warn");
+      }
+    }
+
+    function backToIdentity() {
+      state.token = "";
+      state.student = null;
+      state.answers = [];
+      els.answersCard.classList.add("hidden");
+      els.identityCard.classList.remove("hidden");
+      els.step2.classList.remove("on");
+      els.step3.classList.remove("on");
+      window.scrollTo({top:0,behavior:"smooth"});
+    }
+
+    async function submitAnswers() {
+      showNotice(els.submitError, "", "error");
+
+      if (!state.token || !state.evaluation || state.answers.some(function(a){ return !a; })) {
+        showNotice(els.submitError, "Há respostas pendentes ou sua identificação expirou.", "error");
+        return;
+      }
+
+      var confirmed = window.confirm("Enviar o gabarito agora? Depois do envio, as respostas não poderão ser alteradas nesta página.");
+      if (!confirmed) return;
+
+      setButtonLoading(els.submitBtn, true, "Enviando");
+
+      try {
+        var data = await api({
+          action:"submitAnswers",
+          token:state.token,
+          avaliacaoId:state.evaluation.id,
+          respostas:state.answers.slice(),
+          clientTimestamp:new Date().toISOString(),
+          schemaVersion:"student-entry-1.0"
+        });
+
+        if (!data.ok) throw new Error(data.error || "Não foi possível enviar.");
+
+        els.answersCard.classList.add("hidden");
+        els.identityCard.classList.add("hidden");
+        els.successCard.classList.add("show");
+        els.successText.textContent = (state.student ? state.student.nome + ", " : "") + "seu gabarito foi registrado com sucesso.";
+        els.step1.classList.add("on");
+        els.step2.classList.add("on");
+        els.step3.classList.add("on");
+
+        state.token = "";
+        window.scrollTo({top:0,behavior:"smooth"});
+      } catch (err) {
+        showNotice(els.submitError, readableError(err), "error");
+        setButtonLoading(els.submitBtn, false, "Enviar respostas");
+      }
+    }
+
+    els.classSelect.addEventListener("change",onClassChange);
+    els.subjectSelect.addEventListener("change",onSubjectChange);
+    els.evaluationSelect.addEventListener("change",onEvaluationChange);
+    els.validateBtn.addEventListener("click",validateStudent);
+    els.changeStudentBtn.addEventListener("click",backToIdentity);
+    els.submitBtn.addEventListener("click",submitAnswers);
+    els.raInput.addEventListener("input",function(){
+      this.value = this.value.replace(/[^0-9Xx.-]/g,"");
+    });
+
+    bootstrap();
+  </script>
+</body>
+</html>
