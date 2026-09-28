@@ -131,9 +131,15 @@
           <select id="subjectSelect"><option value="">Selecione a disciplina</option></select>
         </div>
 
-        <div class="field full">
+        <div class="field full" id="evaluationField">
           <label for="evaluationSelect">Avaliação</label>
           <select id="evaluationSelect"><option value="">Selecione a avaliação</option></select>
+        </div>
+
+        <div class="field full hidden" id="cadernoField">
+          <label for="cadernoSelect">Caderno / cor da prova</label>
+          <select id="cadernoSelect"><option value="">Selecione a cor do seu caderno</option></select>
+          <div class="hint">Confira a cor impressa na capa da sua Prova Paulista antes de continuar.</div>
         </div>
       </div>
 
@@ -174,7 +180,7 @@
       <p id="successText">Seu gabarito foi registrado com sucesso.</p>
     </section>
 
-    <div class="footer">Ecossistema Professor • Entrada Digital do Aluno • v1.0</div>
+    <div class="footer">Ecossistema Professor • Entrada Digital do Aluno • v1.1</div>
   </main>
 
   <script>
@@ -222,6 +228,9 @@
       raInput: document.getElementById("raInput"),
       subjectSelect: document.getElementById("subjectSelect"),
       evaluationSelect: document.getElementById("evaluationSelect"),
+      evaluationField: document.getElementById("evaluationField"),
+      cadernoField: document.getElementById("cadernoField"),
+      cadernoSelect: document.getElementById("cadernoSelect"),
       evaluationSummary: document.getElementById("evaluationSummary"),
       validateBtn: document.getElementById("validateBtn"),
       setupNotice: document.getElementById("setupNotice"),
@@ -386,13 +395,45 @@
         });
     }
 
+    function evaluationColor(e) {
+      var text = ((e && e.titulo) || "") + " " + ((e && e.id) || "");
+      text = text.toUpperCase();
+      if (text.indexOf("ROXA") >= 0 || text.indexOf("ROXO") >= 0) return {key:"Roxa",label:"🟣 Roxa"};
+      if (text.indexOf("LARANJA") >= 0) return {key:"Laranja",label:"🟠 Laranja"};
+      if (text.indexOf("VERDE") >= 0) return {key:"Verde",label:"🟢 Verde"};
+      return null;
+    }
+
     function refreshEvaluations() {
       var list = filteredEvaluations();
       fillSelect(els.evaluationSelect, list, list.length ? "Selecione a avaliação" : "Nenhuma avaliação disponível", "id", "titulo");
 
+      var colorVariants = list.map(function(e){
+        var cor = evaluationColor(e);
+        return cor ? {id:e.id,label:cor.label,key:cor.key} : null;
+      }).filter(Boolean);
+
+      var useColorPicker = colorVariants.length >= 2;
+      els.evaluationField.classList.toggle("hidden", useColorPicker);
+      els.cadernoField.classList.toggle("hidden", !useColorPicker);
+
+      if (useColorPicker) {
+        els.cadernoSelect.innerHTML = '<option value="">Selecione a cor do seu caderno</option>';
+        colorVariants.forEach(function(v){
+          var opt = document.createElement("option");
+          opt.value = v.id;
+          opt.textContent = v.label;
+          els.cadernoSelect.appendChild(opt);
+        });
+        els.evaluationSelect.value = "";
+      } else {
+        els.cadernoSelect.innerHTML = '<option value="">Selecione a cor do seu caderno</option>';
+      }
+
       var fixedEvaluation = params.get("avaliacao");
       if (fixedEvaluation && list.some(function(e){ return e.id === fixedEvaluation; })) {
         els.evaluationSelect.value = fixedEvaluation;
+        if (useColorPicker) els.cadernoSelect.value = fixedEvaluation;
       }
       onEvaluationChange();
     }
@@ -435,11 +476,15 @@
         return;
       }
 
-      [
+      var summaryLabels = [
         state.evaluation.turma,
         state.evaluation.disciplina,
         state.evaluation.questoes + " questões"
-      ].forEach(function(label){
+      ];
+      var cor = evaluationColor(state.evaluation);
+      if (cor) summaryLabels.push("Caderno " + cor.key);
+
+      summaryLabels.forEach(function(label){
         var chip = document.createElement("span");
         chip.className = "chip";
         chip.textContent = label;
@@ -513,7 +558,7 @@
       var avaliacaoId = els.evaluationSelect.value;
 
       if (!turma || !alunoId || !ra || !disciplina || !avaliacaoId || !state.evaluation) {
-        showNotice(els.identityError, "Preencha turma, nome, RA, disciplina e avaliação para continuar.", "error");
+        showNotice(els.identityError, "Preencha turma, nome, RA, disciplina e, quando solicitado, a cor do caderno para continuar.", "error");
         return;
       }
 
@@ -668,6 +713,10 @@
     els.classSelect.addEventListener("change",onClassChange);
     els.subjectSelect.addEventListener("change",onSubjectChange);
     els.evaluationSelect.addEventListener("change",onEvaluationChange);
+    els.cadernoSelect.addEventListener("change",function(){
+      els.evaluationSelect.value = this.value;
+      onEvaluationChange();
+    });
     els.validateBtn.addEventListener("click",validateStudent);
     els.changeStudentBtn.addEventListener("click",backToIdentity);
     els.submitBtn.addEventListener("click",submitAnswers);
