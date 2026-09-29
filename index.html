@@ -464,15 +464,10 @@
     }
 
     function splitTargetsForEvaluation(e) {
-      if (e && Array.isArray(e.split_targets) && e.split_targets.length) {
-        return e.split_targets.map(function(target){
-          return {
-            avaliacaoId:String(target.id || target.avaliacaoId || ""),
-            label:String(target.disciplina || target.label || "Disciplina"),
-            indexes:Array.isArray(target.indexes) ? target.indexes.map(Number) : []
-          };
-        }).filter(function(target){ return target.avaliacaoId && target.indexes.length; });
-      }
+      // Avaliações criadas pelo painel usam divisão no BACKEND:
+      // o aluno valida e envia a avaliação composta uma única vez, e o servidor
+      // grava o recibo da avaliação-pai + os resultados separados por disciplina.
+      // Mantemos abaixo apenas os casos legados que ainda dependem do split no navegador.
       if (!e) return [];
       if (e.id === "HIST-2B-20260928-181957-AE2D71") {
         return [
