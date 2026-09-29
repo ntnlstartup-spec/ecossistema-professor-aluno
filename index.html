@@ -182,7 +182,7 @@
       <p id="successText">Seu gabarito foi registrado com sucesso.</p>
     </section>
 
-    <div class="footer">Ecossistema Professor • Entrada Digital do Aluno • v1.4</div>
+    <div class="footer">Ecossistema Professor • Entrada Digital do Aluno • v1.5</div>
   </main>
 
   <script>
@@ -377,13 +377,26 @@
     }
 
     function normalizeEvaluation(e) {
+      var disciplina = String(e.disciplina || "");
+      var disciplinas = Array.isArray(e.disciplinas)
+        ? e.disciplinas.map(String).filter(Boolean)
+        : disciplina.split(/\s*\+\s*/).map(function(x){ return x.trim(); }).filter(Boolean);
+
       return {
         id: String(e.id || ""),
         titulo: String(e.titulo || e.title || "Avaliação"),
         turma: String(e.turma || ""),
-        disciplina: String(e.disciplina || ""),
+        disciplina: disciplina,
+        disciplinas: disciplinas,
         questoes: Number(e.questoes || e.questionCount || 0),
-        opcoes: Array.isArray(e.opcoes || e.options) ? (e.opcoes || e.options) : ["A","B","C","D","E"]
+        opcoes: Array.isArray(e.opcoes || e.options) ? (e.opcoes || e.options) : ["A","B","C","D","E"],
+        layout: Array.isArray(e.layout) ? e.layout.map(function(item){
+          return {
+            questao_original: String((item && item.questao_original) || ""),
+            disciplina_original: String((item && item.disciplina_original) || ""),
+            cor: String((item && item.cor) || "")
+          };
+        }) : []
       };
     }
 
@@ -391,24 +404,50 @@
       if (!state.bootstrap) return [];
       var turma = els.classSelect.value;
       var disciplina = els.subjectSelect.value;
+
       return state.bootstrap.avaliacoes
         .map(normalizeEvaluation)
         .filter(function(e){ return !isInternalSplitTarget(e); })
         .filter(function(e){
           if (turma && e.turma !== turma) return false;
           if (!disciplina) return true;
+          if (Array.isArray(e.disciplinas) && e.disciplinas.indexOf(disciplina) >= 0) return true;
           if (isCombinedMonthly2B(e) && (disciplina === "História" || disciplina === "Sociologia")) return true;
           return e.disciplina === disciplina;
         });
     }
 
     function evaluationColor(e) {
-      var text = ((e && e.titulo) || "") + " " + ((e && e.id) || "");
-      text = text.toUpperCase();
-      if (text.indexOf("ROXA") >= 0 || text.indexOf("ROXO") >= 0) return {key:"Roxa",label:"🟣 Roxa"};
-      if (text.indexOf("LARANJA") >= 0) return {key:"Laranja",label:"🟠 Laranja"};
-      if (text.indexOf("VERDE") >= 0) return {key:"Verde",label:"🟢 Verde"};
-      return null;
+      var layoutColor = "";
+      if (e && Array.isArray(e.layout)) {
+        var found = e.layout.find(function(item){ return item && item.cor; });
+        layoutColor = found ? String(found.cor || "").trim() : "";
+      }
+
+      var text = (((e && e.titulo) || "") + " " + ((e && e.id) || "")).toUpperCase();
+      var key = layoutColor;
+
+      if (!key) {
+        if (text.indexOf("ROXA") >= 0 || text.indexOf("ROXO") >= 0) key = "Roxa";
+        else if (text.indexOf("LARANJA") >= 0) key = "Laranja";
+        else if (text.indexOf("VERDE") >= 0) key = "Verde";
+        else if (text.indexOf("AZUL") >= 0) key = "Azul";
+        else if (text.indexOf("AMAREL") >= 0) key = "Amarela";
+        else if (text.indexOf("CINZA") >= 0) key = "Cinza";
+      }
+
+      if (!key) return null;
+
+      var upper = key.toUpperCase();
+      var emoji =
+        upper.indexOf("ROX") >= 0 ? "🟣" :
+        upper.indexOf("LARANJA") >= 0 ? "🟠" :
+        upper.indexOf("VERDE") >= 0 ? "🟢" :
+        upper.indexOf("AZUL") >= 0 ? "🔵" :
+        upper.indexOf("AMAREL") >= 0 ? "🟡" :
+        upper.indexOf("CINZA") >= 0 ? "⚪" : "📘";
+
+      return {key:key,label:emoji + " " + key};
     }
 
     function isCombinedMonthly2B(e) {
@@ -461,12 +500,34 @@
     }
 
     function questionLayout(e, index) {
-      if (isCombinedProvaPaulista2B(e)) {
-        if (index < 5) {
-          return {numero:index + 16,secao:"História",faixa:"Questões 16–20"};
+      if (e && Array.isArray(e.layout) && e.layout[index]) {
+        var item = e.layout[index] || {};
+        var section = String(item.disciplina_original || "").trim();
+        var original = String(item.questao_original || "").trim();
+        var faixa = "";
+
+        if (section) {
+          var nums = e.layout
+            .filter(function(x){ return String((x && x.disciplina_original) || "").trim() === section; })
+            .map(function(x){ return String((x && x.questao_original) || "").trim(); })
+            .filter(Boolean);
+
+          if (nums.length === 1) faixa = "Questão " + nums[0];
+          else if (nums.length > 1) faixa = "Questões " + nums[0] + "–" + nums[nums.length - 1];
         }
+
+        return {
+          numero: original || (index + 1),
+          secao: section,
+          faixa: faixa
+        };
+      }
+
+      if (isCombinedProvaPaulista2B(e)) {
+        if (index < 5) return {numero:index + 16,secao:"História",faixa:"Questões 16–20"};
         return {numero:index + 21,secao:"Sociologia",faixa:"Questões 26–30"};
       }
+
       if (isCombinedMonthly2B(e)) {
         return {
           numero: index + 16,
@@ -474,6 +535,7 @@
           faixa: index < 5 ? "Questões 16–20" : "Questões 21–25"
         };
       }
+
       return {numero:index + 1,secao:"",faixa:""};
     }
 
@@ -551,7 +613,9 @@
 
       var summaryLabels = [
         state.evaluation.turma,
-        state.evaluation.disciplina,
+        (state.evaluation.disciplinas && state.evaluation.disciplinas.length
+          ? state.evaluation.disciplinas.join(" + ")
+          : state.evaluation.disciplina),
         state.evaluation.questoes + " questões"
       ];
       if (isCombinedProvaPaulista2B(state.evaluation)) {
@@ -835,7 +899,12 @@
         els.answersCard.classList.add("hidden");
         els.identityCard.classList.add("hidden");
         els.successCard.classList.add("show");
-        els.successText.textContent = (state.student ? state.student.nome + ", " : "") + (hasSplit ? "seu gabarito foi registrado e as notas de História e Sociologia serão calculadas separadamente." : "seu gabarito foi registrado com sucesso.");
+        var backendSplit = Boolean(data && Array.isArray(data.splitSubmissions) && data.splitSubmissions.length);
+        var multiDiscipline = Boolean(state.evaluation && Array.isArray(state.evaluation.disciplinas) && state.evaluation.disciplinas.length > 1);
+        els.successText.textContent = (state.student ? state.student.nome + ", " : "") +
+          ((hasSplit || backendSplit || multiDiscipline)
+            ? "seu gabarito foi registrado e as notas de cada disciplina foram separadas automaticamente."
+            : "seu gabarito foi registrado com sucesso.");
         els.step1.classList.add("on");
         els.step2.classList.add("on");
         els.step3.classList.add("on");
