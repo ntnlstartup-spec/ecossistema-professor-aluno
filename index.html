@@ -541,17 +541,18 @@
       var list = filteredEvaluations();
       fillSelect(els.evaluationSelect, list, list.length ? "Selecione a avaliação" : "Nenhuma avaliação disponível", "id", "titulo");
 
+      var fixedEvaluation = params.get("avaliacao");
       var colorVariants = list.map(function(e){
         var cor = evaluationColor(e);
         return cor ? {id:e.id,label:cor.label,key:cor.key} : null;
       }).filter(Boolean);
 
-      var useColorPicker = colorVariants.length >= 2;
+      var useColorPicker = !fixedEvaluation && list.length >= 2 && colorVariants.length === list.length;
       els.evaluationField.classList.toggle("hidden", useColorPicker);
       els.cadernoField.classList.toggle("hidden", !useColorPicker);
+      els.cadernoSelect.innerHTML = '<option value="">Selecione a cor do seu caderno</option>';
 
       if (useColorPicker) {
-        els.cadernoSelect.innerHTML = '<option value="">Selecione a cor do seu caderno</option>';
         colorVariants.forEach(function(v){
           var opt = document.createElement("option");
           opt.value = v.id;
@@ -559,14 +560,10 @@
           els.cadernoSelect.appendChild(opt);
         });
         els.evaluationSelect.value = "";
-      } else {
-        els.cadernoSelect.innerHTML = '<option value="">Selecione a cor do seu caderno</option>';
       }
 
-      var fixedEvaluation = params.get("avaliacao");
       if (fixedEvaluation && list.some(function(e){ return e.id === fixedEvaluation; })) {
         els.evaluationSelect.value = fixedEvaluation;
-        if (useColorPicker) els.cadernoSelect.value = fixedEvaluation;
       }
       onEvaluationChange();
     }
@@ -609,18 +606,19 @@
         return;
       }
 
-      var summaryLabels = [
-        state.evaluation.turma,
-        (state.evaluation.disciplinas && state.evaluation.disciplinas.length
-          ? state.evaluation.disciplinas.join(" + ")
-          : state.evaluation.disciplina),
-        state.evaluation.questoes + " questões"
-      ];
-      if (isCombinedProvaPaulista2B(state.evaluation)) {
-        summaryLabels.push("História Q16–20 • Sociologia Q26–30");
-      } else if (isCombinedMonthly2B(state.evaluation)) {
-        summaryLabels.push("História Q16–20 • Sociologia Q21–25");
-      }
+      var summaryLabels = [state.evaluation.turma];
+      if (state.evaluation.tipo) summaryLabels.push(state.evaluation.tipo);
+      var disciplinas = state.evaluation.disciplinas.length
+        ? state.evaluation.disciplinas
+        : [state.evaluation.disciplina].filter(Boolean);
+      if (disciplinas.length) summaryLabels.push(disciplinas.join(" + "));
+      summaryLabels.push(state.evaluation.questoes + " questões");
+
+      disciplinas.forEach(function(d){
+        var faixa = sectionRangeLabel(state.evaluation, d);
+        if (faixa) summaryLabels.push(d + " • " + faixa);
+      });
+
       var cor = evaluationColor(state.evaluation);
       if (cor) summaryLabels.push("Caderno " + cor.key);
 
