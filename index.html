@@ -182,7 +182,7 @@
       <p id="successText">Seu gabarito foi registrado com sucesso.</p>
     </section>
 
-    <div class="footer">Ecossistema Professor • Entrada Digital do Aluno • v1.3</div>
+    <div class="footer">Ecossistema Professor • Entrada Digital do Aluno • v1.4</div>
   </main>
 
   <script>
@@ -221,6 +221,7 @@
       evaluation: null,
       student: null,
       token: "",
+      splitTargets: [],
       answers: []
     };
 
@@ -392,8 +393,12 @@
       var disciplina = els.subjectSelect.value;
       return state.bootstrap.avaliacoes
         .map(normalizeEvaluation)
+        .filter(function(e){ return !isInternalSplitTarget(e); })
         .filter(function(e){
-          return (!turma || e.turma === turma) && (!disciplina || e.disciplina === disciplina);
+          if (turma && e.turma !== turma) return false;
+          if (!disciplina) return true;
+          if (isCombinedMonthly2B(e) && (disciplina === "História" || disciplina === "Sociologia")) return true;
+          return e.disciplina === disciplina;
         });
     }
 
@@ -416,6 +421,43 @@
       if (!e || e.turma !== "2º B" || Number(e.questoes) !== 10) return false;
       var text = (((e && e.titulo) || "") + " " + ((e && e.id) || "")).toUpperCase();
       return text.indexOf("PROVA PAULISTA") >= 0 && Boolean(evaluationColor(e));
+    }
+
+    function isInternalSplitTarget(e) {
+      var id = String((e && e.id) || "");
+      return id === "MENSAL-HIST-2B-B3-2026" ||
+             id === "MENSAL-SOC-2B-B3-2026" ||
+             id === "PP-HIST-2B-B3-2026" ||
+             id === "PP-SOC-2B-B3-2026";
+    }
+
+    function splitTargetsForEvaluation(e) {
+      if (!e) return [];
+      if (e.id === "HIST-2B-20260928-181957-AE2D71") {
+        return [
+          {avaliacaoId:"MENSAL-HIST-2B-B3-2026",label:"História",indexes:[0,1,2,3,4]},
+          {avaliacaoId:"MENSAL-SOC-2B-B3-2026",label:"Sociologia",indexes:[5,6,7,8,9]}
+        ];
+      }
+      if (e.id === "PP-2B-B3-2026-ROXA") {
+        return [
+          {avaliacaoId:"PP-HIST-2B-B3-2026",label:"História",indexes:[0,1,2,3,4]},
+          {avaliacaoId:"PP-SOC-2B-B3-2026",label:"Sociologia",indexes:[5,6,7,8,9]}
+        ];
+      }
+      if (e.id === "PP-2B-B3-2026-LARANJA") {
+        return [
+          {avaliacaoId:"PP-HIST-2B-B3-2026",label:"História",indexes:[0,2,3,1,4]},
+          {avaliacaoId:"PP-SOC-2B-B3-2026",label:"Sociologia",indexes:[8,5,6,7,9]}
+        ];
+      }
+      if (e.id === "PP-2B-B3-2026-VERDE") {
+        return [
+          {avaliacaoId:"PP-HIST-2B-B3-2026",label:"História",indexes:[0,3,1,4,2]},
+          {avaliacaoId:"PP-SOC-2B-B3-2026",label:"Sociologia",indexes:[8,7,9,5,6]}
+        ];
+      }
+      return [];
     }
 
     function questionLayout(e, index) {
@@ -601,17 +643,41 @@
       setButtonLoading(els.validateBtn, true, "Validando");
 
       try {
-        var data = await api({
-          action:"validateStudent",
-          turma:turma,
-          alunoId:alunoId,
-          ra:ra,
-          avaliacaoId:avaliacaoId
-        });
+        var targets = splitTargetsForEvaluation(state.evaluation);
+        var data;
+        state.splitTargets = [];
+
+        if (targets.length) {
+          var validations = await Promise.all(targets.map(function(target){
+            return api({
+              action:"validateStudent",
+              turma:turma,
+              alunoId:alunoId,
+              ra:ra,
+              avaliacaoId:target.avaliacaoId
+            });
+          }));
+          data = validations[0];
+          state.token = "";
+          state.splitTargets = targets.map(function(target,index){
+            return Object.assign({}, target, {token:String((validations[index] && validations[index].token) || "")});
+          });
+          if (state.splitTargets.some(function(target){ return !target.token; })) {
+            throw new Error("Não foi possível validar as duas disciplinas.");
+          }
+        } else {
+          data = await api({
+            action:"validateStudent",
+            turma:turma,
+            alunoId:alunoId,
+            ra:ra,
+            avaliacaoId:avaliacaoId
+          });
+          state.token = String(data.token || "");
+        }
 
         if (!data.ok) throw new Error(data.error || "Não foi possível validar.");
         state.student = {id:alunoId,nome:data.nome || els.studentSelect.options[els.studentSelect.selectedIndex].text};
-        state.token = String(data.token || "");
         state.answers = new Array(state.evaluation.questoes).fill("");
 
         els.raInput.value = "";
@@ -710,6 +776,7 @@
 
     function backToIdentity() {
       state.token = "";
+      state.splitTargets = [];
       state.student = null;
       state.answers = [];
       els.answersCard.classList.add("hidden");
@@ -722,7 +789,8 @@
     async function submitAnswers() {
       showNotice(els.submitError, "", "error");
 
-      if (!state.token || !state.evaluation || state.answers.some(function(a){ return !a; })) {
+      var hasSplit = Array.isArray(state.splitTargets) && state.splitTargets.length > 0;
+      if ((!hasSplit && !state.token) || !state.evaluation || state.answers.some(function(a){ return !a; })) {
         showNotice(els.submitError, "Há respostas pendentes ou sua identificação expirou.", "error");
         return;
       }
@@ -733,26 +801,47 @@
       setButtonLoading(els.submitBtn, true, "Enviando");
 
       try {
-        var data = await api({
-          action:"submitAnswers",
-          token:state.token,
-          avaliacaoId:state.evaluation.id,
-          respostas:state.answers.slice(),
-          clientTimestamp:new Date().toISOString(),
-          schemaVersion:"student-entry-1.0"
-        });
+        var data;
+        var clientTimestamp = new Date().toISOString();
 
-        if (!data.ok) throw new Error(data.error || "Não foi possível enviar.");
+        if (hasSplit) {
+          var splitResults = [];
+          for (var i=0;i<state.splitTargets.length;i++) {
+            var target = state.splitTargets[i];
+            var result = await api({
+              action:"submitAnswers",
+              token:target.token,
+              avaliacaoId:target.avaliacaoId,
+              respostas:target.indexes.map(function(answerIndex){ return state.answers[answerIndex]; }),
+              clientTimestamp:clientTimestamp,
+              schemaVersion:"student-entry-1.1-split"
+            });
+            splitResults.push(result);
+          }
+          data = splitResults[0];
+        } else {
+          data = await api({
+            action:"submitAnswers",
+            token:state.token,
+            avaliacaoId:state.evaluation.id,
+            respostas:state.answers.slice(),
+            clientTimestamp:clientTimestamp,
+            schemaVersion:"student-entry-1.0"
+          });
+        }
+
+        if (!data || !data.ok) throw new Error((data && data.error) || "Não foi possível enviar.");
 
         els.answersCard.classList.add("hidden");
         els.identityCard.classList.add("hidden");
         els.successCard.classList.add("show");
-        els.successText.textContent = (state.student ? state.student.nome + ", " : "") + "seu gabarito foi registrado com sucesso.";
+        els.successText.textContent = (state.student ? state.student.nome + ", " : "") + (hasSplit ? "seu gabarito foi registrado e as notas de História e Sociologia serão calculadas separadamente." : "seu gabarito foi registrado com sucesso.");
         els.step1.classList.add("on");
         els.step2.classList.add("on");
         els.step3.classList.add("on");
 
         state.token = "";
+        state.splitTargets = [];
         window.scrollTo({top:0,behavior:"smooth"});
       } catch (err) {
         showNotice(els.submitError, readableError(err), "error");
