@@ -395,7 +395,8 @@
         questoes: Number(e.questoes || e.questionCount || 0),
         opcoes: Array.isArray(e.opcoes || e.options) ? (e.opcoes || e.options) : ["A","B","C","D","E"],
         layout: Array.isArray(e.layout) ? e.layout : [],
-        split_targets: Array.isArray(e.split_targets) ? e.split_targets : []
+        split_targets: Array.isArray(e.split_targets) ? e.split_targets : [],
+        observacoes: String(e.observacoes || "")
       };
     }
 
@@ -456,6 +457,7 @@
     }
 
     function isInternalSplitTarget(e) {
+      if (String((e && e.observacoes) || "").indexOf("ALVO_INTERNO_SPLIT_AUTOMATICO") >= 0) return true;
       var id = String((e && e.id) || "");
       return id === "MENSAL-HIST-2B-B3-2026" ||
              id === "MENSAL-SOC-2B-B3-2026" ||
