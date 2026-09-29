@@ -377,26 +377,25 @@
     }
 
     function normalizeEvaluation(e) {
-      var disciplina = String(e.disciplina || "");
-      var disciplinas = Array.isArray(e.disciplinas)
-        ? e.disciplinas.map(String).filter(Boolean)
-        : disciplina.split(/\s*\+\s*/).map(function(x){ return x.trim(); }).filter(Boolean);
-
+      var disciplinasRaw = Array.isArray(e.disciplinas)
+        ? e.disciplinas
+        : String(e.disciplina || "").split(/\s*\+\s*/);
+      var disciplinas = [];
+      disciplinasRaw.forEach(function(d){
+        d = String(d || "").trim();
+        if (d && disciplinas.indexOf(d) < 0) disciplinas.push(d);
+      });
       return {
         id: String(e.id || ""),
         titulo: String(e.titulo || e.title || "Avaliação"),
+        tipo: String(e.tipo || ""),
         turma: String(e.turma || ""),
-        disciplina: disciplina,
+        disciplina: String(e.disciplina || ""),
         disciplinas: disciplinas,
         questoes: Number(e.questoes || e.questionCount || 0),
         opcoes: Array.isArray(e.opcoes || e.options) ? (e.opcoes || e.options) : ["A","B","C","D","E"],
-        layout: Array.isArray(e.layout) ? e.layout.map(function(item){
-          return {
-            questao_original: String((item && item.questao_original) || ""),
-            disciplina_original: String((item && item.disciplina_original) || ""),
-            cor: String((item && item.cor) || "")
-          };
-        }) : []
+        layout: Array.isArray(e.layout) ? e.layout : [],
+        split_targets: Array.isArray(e.split_targets) ? e.split_targets : []
       };
     }
 
@@ -404,50 +403,42 @@
       if (!state.bootstrap) return [];
       var turma = els.classSelect.value;
       var disciplina = els.subjectSelect.value;
-
       return state.bootstrap.avaliacoes
         .map(normalizeEvaluation)
         .filter(function(e){ return !isInternalSplitTarget(e); })
         .filter(function(e){
           if (turma && e.turma !== turma) return false;
           if (!disciplina) return true;
-          if (Array.isArray(e.disciplinas) && e.disciplinas.indexOf(disciplina) >= 0) return true;
-          if (isCombinedMonthly2B(e) && (disciplina === "História" || disciplina === "Sociologia")) return true;
-          return e.disciplina === disciplina;
+          var disciplinas = e.disciplinas.length ? e.disciplinas : [e.disciplina];
+          return disciplinas.indexOf(disciplina) >= 0;
         });
     }
 
+    function colorEmoji(name) {
+      var key = String(name || "").trim().toLocaleLowerCase("pt-BR");
+      var map = {
+        "roxa":"🟣","roxo":"🟣","laranja":"🟠","verde":"🟢","azul":"🔵",
+        "amarela":"🟡","amarelo":"🟡","vermelha":"🔴","vermelho":"🔴",
+        "cinza":"⚪","branca":"⚪","branco":"⚪","preta":"⚫","preto":"⚫"
+      };
+      return map[key] || "📘";
+    }
+
     function evaluationColor(e) {
-      var layoutColor = "";
-      if (e && Array.isArray(e.layout)) {
-        var found = e.layout.find(function(item){ return item && item.cor; });
-        layoutColor = found ? String(found.cor || "").trim() : "";
-      }
-
-      var text = (((e && e.titulo) || "") + " " + ((e && e.id) || "")).toUpperCase();
-      var key = layoutColor;
-
+      if (!e) return null;
+      var layoutColors = [];
+      (e.layout || []).forEach(function(item){
+        var c = String(item && item.cor || "").trim();
+        if (c && layoutColors.indexOf(c) < 0) layoutColors.push(c);
+      });
+      var key = layoutColors.length === 1 ? layoutColors[0] : "";
       if (!key) {
-        if (text.indexOf("ROXA") >= 0 || text.indexOf("ROXO") >= 0) key = "Roxa";
-        else if (text.indexOf("LARANJA") >= 0) key = "Laranja";
-        else if (text.indexOf("VERDE") >= 0) key = "Verde";
-        else if (text.indexOf("AZUL") >= 0) key = "Azul";
-        else if (text.indexOf("AMAREL") >= 0) key = "Amarela";
-        else if (text.indexOf("CINZA") >= 0) key = "Cinza";
+        var text = String(e.titulo || "");
+        var match = text.match(/Caderno\s+([A-Za-zÀ-ÿ]+)/i);
+        if (match) key = match[1];
       }
-
       if (!key) return null;
-
-      var upper = key.toUpperCase();
-      var emoji =
-        upper.indexOf("ROX") >= 0 ? "🟣" :
-        upper.indexOf("LARANJA") >= 0 ? "🟠" :
-        upper.indexOf("VERDE") >= 0 ? "🟢" :
-        upper.indexOf("AZUL") >= 0 ? "🔵" :
-        upper.indexOf("AMAREL") >= 0 ? "🟡" :
-        upper.indexOf("CINZA") >= 0 ? "⚪" : "📘";
-
-      return {key:key,label:emoji + " " + key};
+      return {key:key,label:colorEmoji(key) + " " + key};
     }
 
     function isCombinedMonthly2B(e) {
@@ -471,6 +462,15 @@
     }
 
     function splitTargetsForEvaluation(e) {
+      if (e && Array.isArray(e.split_targets) && e.split_targets.length) {
+        return e.split_targets.map(function(target){
+          return {
+            avaliacaoId:String(target.id || target.avaliacaoId || ""),
+            label:String(target.disciplina || target.label || "Disciplina"),
+            indexes:Array.isArray(target.indexes) ? target.indexes.map(Number) : []
+          };
+        }).filter(function(target){ return target.avaliacaoId && target.indexes.length; });
+      }
       if (!e) return [];
       if (e.id === "HIST-2B-20260928-181957-AE2D71") {
         return [
@@ -499,43 +499,41 @@
       return [];
     }
 
+    function sectionRangeLabel(e, sectionName) {
+      var values = (e.layout || [])
+        .filter(function(item){ return String(item && item.disciplina_original || "") === String(sectionName || ""); })
+        .map(function(item){ return String(item && item.questao_original || "").replace(/^Q/i,"").trim(); })
+        .filter(Boolean);
+      if (!values.length) return "";
+      var nums = values.map(Number);
+      if (nums.every(function(n){ return Number.isFinite(n); }) && nums.length > 1) {
+        var sequential = nums.every(function(n,i){ return i === 0 || n === nums[i-1] + 1; });
+        if (sequential) return "Questões " + nums[0] + "–" + nums[nums.length-1];
+      }
+      return "Questões " + values.join(", ");
+    }
+
     function questionLayout(e, index) {
-      if (e && Array.isArray(e.layout) && e.layout[index]) {
-        var item = e.layout[index] || {};
-        var section = String(item.disciplina_original || "").trim();
-        var original = String(item.questao_original || "").trim();
-        var faixa = "";
-
-        if (section) {
-          var nums = e.layout
-            .filter(function(x){ return String((x && x.disciplina_original) || "").trim() === section; })
-            .map(function(x){ return String((x && x.questao_original) || "").trim(); })
-            .filter(Boolean);
-
-          if (nums.length === 1) faixa = "Questão " + nums[0];
-          else if (nums.length > 1) faixa = "Questões " + nums[0] + "–" + nums[nums.length - 1];
-        }
-
+      var item = e && Array.isArray(e.layout) ? (e.layout[index] || {}) : {};
+      if (item.questao_original || item.disciplina_original) {
+        var secao = String(item.disciplina_original || "");
         return {
-          numero: original || (index + 1),
-          secao: section,
-          faixa: faixa
+          numero:String(item.questao_original || (index + 1)).replace(/^Q/i,""),
+          secao:secao,
+          faixa:secao ? sectionRangeLabel(e, secao) : ""
         };
       }
-
       if (isCombinedProvaPaulista2B(e)) {
         if (index < 5) return {numero:index + 16,secao:"História",faixa:"Questões 16–20"};
         return {numero:index + 21,secao:"Sociologia",faixa:"Questões 26–30"};
       }
-
       if (isCombinedMonthly2B(e)) {
         return {
-          numero: index + 16,
-          secao: index < 5 ? "História" : "Sociologia",
-          faixa: index < 5 ? "Questões 16–20" : "Questões 21–25"
+          numero:index + 16,
+          secao:index < 5 ? "História" : "Sociologia",
+          faixa:index < 5 ? "Questões 16–20" : "Questões 21–25"
         };
       }
-
       return {numero:index + 1,secao:"",faixa:""};
     }
 
