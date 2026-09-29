@@ -403,10 +403,12 @@
       if (!state.bootstrap) return [];
       var turma = els.classSelect.value;
       var disciplina = els.subjectSelect.value;
+      var bundle = String(params.get("bundle") || "").trim();
       return state.bootstrap.avaliacoes
         .map(normalizeEvaluation)
         .filter(function(e){ return !isInternalSplitTarget(e); })
         .filter(function(e){
+          if (bundle && e.id.indexOf(bundle + "-") !== 0) return false;
           if (turma && e.turma !== turma) return false;
           if (!disciplina) return true;
           var disciplinas = e.disciplinas.length ? e.disciplinas : [e.disciplina];
