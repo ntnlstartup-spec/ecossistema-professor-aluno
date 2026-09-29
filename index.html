@@ -566,6 +566,10 @@
 
       if (fixedEvaluation && list.some(function(e){ return e.id === fixedEvaluation; })) {
         els.evaluationSelect.value = fixedEvaluation;
+      } else if (!useColorPicker && list.length === 1) {
+        // Link único de uma avaliação: evita obrigar o aluno a escolher novamente
+        // algo que o professor já determinou no link.
+        els.evaluationSelect.value = list[0].id;
       }
       onEvaluationChange();
     }
